@@ -1,257 +1,450 @@
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import Stats from 'stats.js';
 
-/**
- * Base
- */
+// Performance Monitor
+const stats = new Stats();
+stats.showPanel(0);
+document.body.appendChild(stats.dom);
+
 // Canvas
-const canvas = document.querySelector('canvas.webgl')
+const canvas = document.querySelector('canvas.webgl');
 
 // Scene
-const scene = new THREE.Scene()
+const scene = new THREE.Scene();
 
-/**
- * Textures
- */
-const textureLoader = new THREE.TextureLoader()
-const displacementTexture = textureLoader.load('/textures/displacementMap.png')
+// Textures
+const textureLoader = new THREE.TextureLoader();
+const displacementTexture = textureLoader.load('/textures/displacementMap.png');
 
-/**
- * Sizes
- */
+// Sizes
 const sizes = {
     width: window.innerWidth,
     height: window.innerHeight
-}
+};
 
-window.addEventListener('resize', () =>
-{
-    // Update sizes
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
+window.addEventListener('resize', () => {
+    sizes.width = window.innerWidth;
+    sizes.height = window.innerHeight;
 
-    // Update camera
-    camera.aspect = sizes.width / sizes.height
-    camera.updateProjectionMatrix()
+    camera.aspect = sizes.width / sizes.height;
+    camera.updateProjectionMatrix();
 
-    // Update renderer
-    renderer.setSize(sizes.width, sizes.height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-})
+    renderer.setSize(sizes.width, sizes.height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
 
-/**
- * Camera
- */
-// Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(2, 2, 6)
-scene.add(camera)
+// Camera
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100);
+camera.position.set(2, 2, 6);
+scene.add(camera);
 
 // Controls
-const controls = new OrbitControls(camera, canvas)
-controls.enableDamping = true
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
 
-/**
- * Renderer
- */
+// Renderer
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
     powerPreference: 'high-performance',
     antialias: true
-})
-renderer.shadowMap.enabled = true
-renderer.shadowMap.type = THREE.PCFSoftShadowMap
-renderer.setSize(sizes.width, sizes.height)
-renderer.setPixelRatio(window.devicePixelRatio)
+});
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setSize(sizes.width, sizes.height);
+renderer.setPixelRatio(window.devicePixelRatio);
 
-/**
- * Test meshes
- */
+// Test Meshes
 const cube = new THREE.Mesh(
     new THREE.BoxGeometry(2, 2, 2),
     new THREE.MeshStandardMaterial()
-)
-cube.castShadow = true
-cube.receiveShadow = true
-cube.position.set(- 5, 0, 0)
-scene.add(cube)
+);
+cube.castShadow = true;
+cube.receiveShadow = true;
+cube.position.set(- 5, 0, 0);
+scene.add(cube);
 
 const torusKnot = new THREE.Mesh(
     new THREE.TorusKnotGeometry(1, 0.4, 128, 32),
     new THREE.MeshStandardMaterial()
-)
-torusKnot.castShadow = true
-torusKnot.receiveShadow = true
-scene.add(torusKnot)
+);
+torusKnot.castShadow = true;
+torusKnot.receiveShadow = true;
+scene.add(torusKnot);
 
 const sphere = new THREE.Mesh(
     new THREE.SphereGeometry(1, 32, 32),
     new THREE.MeshStandardMaterial()
-)
-sphere.position.set(5, 0, 0)
-sphere.castShadow = true
-sphere.receiveShadow = true
-scene.add(sphere)
+);
+sphere.position.set(5, 0, 0);
+sphere.castShadow = true;
+sphere.receiveShadow = true;
+scene.add(sphere);
 
 const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(10, 10),
     new THREE.MeshStandardMaterial()
-)
-floor.position.set(0, - 2, 0)
-floor.rotation.x = - Math.PI * 0.5
-floor.castShadow = true
-floor.receiveShadow = true
-scene.add(floor)
+);
+floor.position.set(0, - 2, 0);
+floor.rotation.x = - Math.PI * 0.5;
+floor.castShadow = true;
+floor.receiveShadow = true;
+scene.add(floor);
 
-/**
- * Lights
- */
-const directionalLight = new THREE.DirectionalLight('#ffffff', 1)
-directionalLight.castShadow = true
-directionalLight.shadow.mapSize.set(1024, 1024)
-directionalLight.shadow.camera.far = 15
-directionalLight.shadow.normalBias = 0.05
-directionalLight.position.set(0.25, 3, 2.25)
-scene.add(directionalLight)
+// Lights
+const directionalLight = new THREE.DirectionalLight('#ffffff', 1);
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.set(1024, 1024);
+directionalLight.shadow.camera.far = 15;
+directionalLight.shadow.normalBias = 0.05;
+directionalLight.position.set(0.25, 3, 2.25);
+scene.add(directionalLight);
 
-/**
- * Animate
- */
-const clock = new THREE.Clock()
+// Animate
+const clock = new THREE.Clock();
 
-const tick = () =>
-{
-    const elapsedTime = clock.getElapsedTime()
+const tick = () => {
+
+    //* begin performance monitor
+    stats.begin();
+
+    const elapsedTime = clock.getElapsedTime();
 
     // Update test mesh
-    torusKnot.rotation.y = elapsedTime * 0.1
+    torusKnot.rotation.y = elapsedTime * 0.1;
 
-    // Update controls
-    controls.update()
+    controls.update();
+    renderer.render(scene, camera);
+    window.requestAnimationFrame(tick);
 
-    // Render
-    renderer.render(scene, camera)
+    //* end performance monitor
+    stats.end();
+};
 
-    // Call tick again on the next frame
-    window.requestAnimationFrame(tick)
-}
+tick();
 
-tick()
+/* ----- PERFORMANCE ----- */
+//* goal = at least 60fps
 
-/**
- * Tips
- */
+//* https://discoverthreejs.com/tips-and-tricks/
 
-// // Tip 4
-// console.log(renderer.info)
+/* ----- TIPS ----- */
+//? Tip 1
+//* stats.js - performance monitor
+//* https://github.com/mrdoob/stats.js/
+// npm install --save stats.js
 
-// // Tip 6
-// scene.remove(cube)
-// cube.geometry.dispose()
-// cube.material.dispose()
+//? Tip 2
+//* disable browser fps limit
 
-// // Tip 10
-// directionalLight.shadow.camera.top = 3
-// directionalLight.shadow.camera.right = 6
-// directionalLight.shadow.camera.left = - 6
-// directionalLight.shadow.camera.bottom = - 3
-// directionalLight.shadow.camera.far = 10
-// directionalLight.shadow.mapSize.set(1024, 1024)
+//? Tip 3
+//* monitor draw calls
+//* spector.js - monitors draw calls
+//* https://chrome.google.com/webstore/detail/spectorjs/denbgaamihkadbghdceggmchnflmhpmk?hl=en
 
-// const cameraHelper = new THREE.CameraHelper(directionalLight.shadow.camera)
-// scene.add(cameraHelper)
+//? Tip 4
+//* monitor renderer info
+// console.log(renderer.info);
 
-// // Tip 11
-// cube.castShadow = true
-// cube.receiveShadow = false
+//? Tip 5
+//* optimize Javascript code
 
-// torusKnot.castShadow = true
-// torusKnot.receiveShadow = false
+//? Tip 6
+//* dispose of things
+// scene.remove(cube);
+// cube.geometry.dispose();
+// cube.material.dispose();
 
-// sphere.castShadow = true
-// sphere.receiveShadow = false
+//? Tip 7
+//* avoid unnecessary lights
+//* use baked or cheap lights - AmbientLight, DirectionalLight, HemisphereLight
 
-// floor.castShadow = false
-// floor.receiveShadow = true
+//? Tip 8
+//* avoid adding or removing lights
+//* when adding or removing light from a scene, all materials supporting it will recompile
 
-// // Tip 12
-// renderer.shadowMap.autoUpdate = false
-// renderer.shadowMap.needsUpdate = true
+//? Tip 9
+//* avoid shadows
+//* used baked shadows
 
-// // Tip 18
-// for(let i = 0; i < 50; i++)
-// {
-//     const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
+//? Tip 10
+//* optimize shadow map
+// directionalLight.shadow.camera.top = 3;
+// directionalLight.shadow.camera.right = 6;
+// directionalLight.shadow.camera.left = - 6;
+// directionalLight.shadow.camera.bottom = - 3;
+// directionalLight.shadow.camera.far = 10;
+// directionalLight.shadow.mapSize.set(1024, 1024);
 
-//     const material = new THREE.MeshNormalMaterial()
-    
-//     const mesh = new THREE.Mesh(geometry, material)
-//     mesh.position.x = (Math.random() - 0.5) * 10
-//     mesh.position.y = (Math.random() - 0.5) * 10
-//     mesh.position.z = (Math.random() - 0.5) * 10
-//     mesh.rotation.x = (Math.random() - 0.5) * Math.PI * 2
-//     mesh.rotation.y = (Math.random() - 0.5) * Math.PI * 2
+// const cameraHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
+// scene.add(cameraHelper);
 
-//     scene.add(mesh)
-// }
+//? Tip 11
+//* use castShadow and receiveShadow wisely
+// cube.castShadow = true;
+// cube.receiveShadow = false;
 
-// // Tip 19
-// for(let i = 0; i < 50; i++)
-// {
-//     const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
+// torusKnot.castShadow = true;
+// torusKnot.receiveShadow = false;
 
-//     const material = new THREE.MeshNormalMaterial()
-    
-//     const mesh = new THREE.Mesh(geometry, material)
-//     mesh.position.x = (Math.random() - 0.5) * 10
-//     mesh.position.y = (Math.random() - 0.5) * 10
-//     mesh.position.z = (Math.random() - 0.5) * 10
-//     mesh.rotation.x = (Math.random() - 0.5) * Math.PI * 2
-//     mesh.rotation.y = (Math.random() - 0.5) * Math.PI * 2
+// sphere.castShadow = true;
+// sphere.receiveShadow = false;
 
-//     scene.add(mesh)
-// }
+// floor.castShadow = false;
+// floor.receiveShadow = true;
 
-// // Tip 20
-// const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
-    
-// for(let i = 0; i < 50; i++)
-// {
-//     const material = new THREE.MeshNormalMaterial()
+//? Tip 12
+//* deactivate shadow auto update
+// renderer.shadowMap.autoUpdate = false;
+//* and update only when necessary
+// renderer.shadowMap.needsUpdate = true;
 
-//     const mesh = new THREE.Mesh(geometry, material)
-//     mesh.position.x = (Math.random() - 0.5) * 10
-//     mesh.position.y = (Math.random() - 0.5) * 10
-//     mesh.position.z = (Math.random() - 0.5) * 10
-//     mesh.rotation.x = (Math.random() - 0.5) * Math.PI * 2
-//     mesh.rotation.y = (Math.random() - 0.5) * Math.PI * 2
+//? Tip 13
+//* resize textures
+//* textures take a lot of space in GPU memory especially with mipmaps
+//* texture file weights has nothing to do with GPU memory, only the resolution matters
+//* try to reduce resolution while keeping decent result
 
-//     scene.add(mesh)
-// }
+//? Tip 14
+//* keep a power of 2 resolution
+//* doesn't have to be a square
+//* if you don't, threejs will try to resize to closest power of 2 (can be up)
 
-// // Tip 22
-// const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5)
+//? Tip 15
+//* use correct file format to reduce loading time (jpg, png, etc.)
+//* tinyPNG - https://tinypng.com/
+//* try basis format - format like jpg and png, but stronger compression
+//* hard to generate, and lossy compression
 
-// const material = new THREE.MeshNormalMaterial()
-    
-// for(let i = 0; i < 50; i++)
-// {
-//     const mesh = new THREE.Mesh(geometry, material)
-//     mesh.position.x = (Math.random() - 0.5) * 10
-//     mesh.position.y = (Math.random() - 0.5) * 10
-//     mesh.position.z = (Math.random() - 0.5) * 10
-//     mesh.rotation.x = (Math.random() - 0.5) * Math.PI * 2
-//     mesh.rotation.y = (Math.random() - 0.5) * Math.PI * 2
+//? Tip 16
+//* threejs only uses buffer geometries now, ignore tip 16
 
-//     scene.add(mesh)
-// }
+//? Tip 17
+//* do not update vertices
+//* bad for performance, avoid doing it, especially in tick function
+//* if you need to, do it with a vertex shader
 
-// // Tip 29
-// renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+//? Tip 18
+//* mutualize geometries
+//* move geometry outside loops if possible
+// const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+// for (let i = 0; i < 50; i++) {
 
-// // Tip 31, 32, 34 and 35
-// const shaderGeometry = new THREE.PlaneGeometry(10, 10, 256, 256)
+//     const material = new THREE.MeshNormalMaterial();
 
+//     const mesh = new THREE.Mesh(geometry, material);
+//     mesh.position.x = (Math.random() - 0.5) * 10;
+//     mesh.position.y = (Math.random() - 0.5) * 10;
+//     mesh.position.z = (Math.random() - 0.5) * 10;
+//     mesh.rotation.x = (Math.random() - 0.5) * Math.PI * 2;
+//     mesh.rotation.y = (Math.random() - 0.5) * Math.PI * 2;
+
+//     scene.add(mesh);
+// };
+
+//? Tip 19
+//* merge geometries
+//* use Blender or BufferGeometryUtils
+//* https://threejs.org/docs/#examples/en/utils/BufferGeometryUtils
+// const geometries = [];
+// for (let i = 0; i < 50; i++) {
+//     const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+//     geometry.rotateX((Math.random() - 0.5) * Math.PI * 2);
+//     geometry.rotateY((Math.random() - 0.5) * Math.PI * 2);
+//     geometry.translate(
+//         (Math.random() - 0.5) * 10,
+//         (Math.random() - 0.5) * 10,
+//         (Math.random() - 0.5) * 10
+//     );
+//     geometries.push(geometry);
+// };
+// const mergedGeometry = BufferGeometryUtils.mergeBufferGeometries(geometries);
+// const material = new THREE.MeshNormalMaterial();
+// const mesh = new THREE.Mesh(mergedGeometry, material);
+// scene.add(mesh);
+
+//? Tip 20
+//* mutualize materials
+//* move materials outside loops if possible
+// const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+// const material = new THREE.MeshNormalMaterial();
+// for (let i = 0; i < 50; i++) {
+
+//     const mesh = new THREE.Mesh(geometry, material);
+//     mesh.position.x = (Math.random() - 0.5) * 10;
+//     mesh.position.y = (Math.random() - 0.5) * 10;
+//     mesh.position.z = (Math.random() - 0.5) * 10;
+//     mesh.rotation.x = (Math.random() - 0.5) * Math.PI * 2;
+//     mesh.rotation.y = (Math.random() - 0.5) * Math.PI * 2;
+
+//     scene.add(mesh);
+// };
+
+//? Tip 21
+//* use cheap materials
+//* expensive - MeshStandardMaterial, MeshPhysicalMaterial
+//* cheap - MeshBasicMaterial, MeshLambertMaterial, MeshPhongMaterial
+
+//? Tip 22
+//* use InstancedMesh(geometry, material, count)
+//* https://threejs.org/docs/#api/en/objects/InstancedMesh
+//* for needing control over meshes independently, but they all use same geometry and material
+//* only need one InstancedMesh for all meshes
+//* if you intend to change these matrices in tick function, MUST provide this to InstancedMesh:
+// mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+//* provide a transformation matrix for each 'instance' of InstancedMesh
+//* matrix must be Matrix4, apply transformations using available methods
+// const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+// const material = new THREE.MeshNormalMaterial();
+// const mesh = new THREE.InstancedMesh(geometry, material, 50);
+// scene.add(mesh);
+// for (let i = 0; i < 50; i++) {
+//     const position = new THREE.Vector3(
+//         (Math.random() - 0.5) * 10,
+//         (Math.random() - 0.5) * 10,
+//         (Math.random() - 0.5) * 10
+//     );
+//     const quaternion = new THREE.Quaternion();
+//     quaternion.setFromEuler(new THREE.Euler(
+//         (Math.random() - 0.5) * Math.PI * 2,
+//         (Math.random() - 0.5) * Math.PI * 2,
+//         0
+//         ));
+
+//     const matrix = new THREE.Matrix4();
+//     matrix.makeRotationFromQuaternion(quaternion);
+//     matrix.setPosition(position);
+//     mesh.setMatrixAt(i, matrix);
+// };
+
+//? Tip 23
+//* low poly, fewer polygons the better
+//* if you need details, use normal maps
+
+//? Tip 24
+//* draco compression
+//* use if model has a lot of details (city, human body, etc.)
+//* drawbacks - potential freeze when uncompressing geometry and have to load draco libraries
+
+//? Tip 25
+//* GZIP - compression happening on the server side
+//* most servers don't GZIP files like .glb, .gltf, .obj, etc.
+//* check if server is using GZIP:
+//* Network tab -> click image -> Headers -> Response Headers -> content-encoding: gzip
+
+//? Tip 26
+//* field of view
+//* objects not in fov will not be rendered
+//* reduce fov to render less
+
+//? Tip 27
+//* near and far
+//* objects outside near and far will not be rendered
+//* adjust near and far to render less
+
+//? Tip 28
+//* ignore tip 28
+
+//? Tip 29
+//* pixel ratio
+//* don't use default pixel ratio, always set a limit (usually 2)
+// renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+//? Tip 30
+//* power preferences
+//* some devices can switch between GPUs or GPU usage
+//* can hint at what power is required when instantiating WebGLRenderer by specifying 'powerPreference'
+//* if no framerate issues, don't do it
+// const renderer = new THREE.WebGLRenderer({
+//     canvas: canvas,
+//     powerPreference: 'high-performance',
+// });
+
+//? Tip 31
+//* anti-alias
+//* default anti-alias is performant, but less performant than no anti-alias
+//* only add it if you have visible aliasing issues + no performance issues
+
+//? Tip 32
+//* limit passes
+//* if creating own passes, try to merge them into one
+//* each pass takes as many pixels as the renderer's resolution
+
+//? Tip 33
+//* specify shader precision, mediump is default
+// precision: 'lowp'
+//* if no quality downgrades or glitches, use lowp
+//* won't work on RawShaderMaterial, have to add 'precision' on the shader (first shaders lesson)
+
+//? Tip 34
+//* keep shader code simple
+//* avoid if statements
+//* use swizzles and built in functions
+
+//? Tip 35
+//* use textures
+//* using Perlin Noise while cool, can affect performance considerable
+//* sometimes, better to use a texture representing that noise
+
+//? Tip 36
+//* use defines
+//* uniforms are useful because we can tweak and animate the values in js, but bad for performance
+//* if value isn't supposed to change, use defines
+
+//? Tip 37
+//* do calculations in the vertex shader and send result to fragment shader
+//* usually less vertices than fragments, making calculations easier
+
+//? Tip 38
+//* keep an eye on performance FROM THE START
+//* test on other devices (mobile, pc, mac, ipad, etc)
+//* use tools, fix strange behavior before moving on
+
+//! NEW - changes in red
+// const shaderGeometry = new THREE.PlaneGeometry(10, 10, 256, 256);
+// const shaderMaterial = new THREE.ShaderMaterial({
+//!    precision: 'lowp',
+//     uniforms:
+//     {
+//         uDisplacementTexture: { value: displacementTexture }
+//     },
+//     vertexShader: `
+//!        #define DISPLACEMENT_STRENGTH 1.5
+//         uniform sampler2D uDisplacementTexture;
+//         varying vec2 vUv;
+//!        varying vec3 vColor;
+
+//         void main()
+//         {
+//             vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+//             float elevation = texture2D(uDisplacementTexture, uv).r;
+//!            modelPosition.y += clamp(elevation, 0.5, 1.0) * DISPLACEMENT_STRENGTH;
+
+//             gl_Position = projectionMatrix * viewMatrix * modelPosition;
+
+//!            float colorElevation = max(elevation, 0.25);
+//!            vec3 color = mix(vec3(1.0, 0.1, 0.1), vec3(0.1, 0.0, 0.5), colorElevation);
+
+//             vUv = uv;
+//!            vColor = color;
+//         }
+//     `,
+//     fragmentShader: `
+//!        varying vec3 vColor;
+
+//         void main()
+//         {
+//!            gl_FragColor = vec4(vColor, 1.0);
+//         }
+//     `
+// });
+// const shaderMesh = new THREE.Mesh(shaderGeometry, shaderMaterial);
+// shaderMesh.rotation.x = - Math.PI * 0.5;
+// scene.add(shaderMesh);
+
+//! OLD
+// const shaderGeometry = new THREE.PlaneGeometry(10, 10, 256, 256);
 // const shaderMaterial = new THREE.ShaderMaterial({
 //     uniforms:
 //     {
@@ -304,8 +497,7 @@ tick()
 //             gl_FragColor = vec4(finalColor, 1.0);
 //         }
 //     `
-// })
-
-// const shaderMesh = new THREE.Mesh(shaderGeometry, shaderMaterial)
-// shaderMesh.rotation.x = - Math.PI * 0.5
-// scene.add(shaderMesh)
+// });
+// const shaderMesh = new THREE.Mesh(shaderGeometry, shaderMaterial);
+// shaderMesh.rotation.x = - Math.PI * 0.5;
+// scene.add(shaderMesh);
