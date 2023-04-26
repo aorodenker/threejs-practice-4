@@ -15,6 +15,7 @@ const loadingManager = new THREE.LoadingManager(
             loadingBarElement.style.transform = '';
         }, 500);
 
+        //* longer timeout for html elements to show
         window.setTimeout(() => {
             sceneReady = true;
         }, 2000);
@@ -106,6 +107,9 @@ gltfLoader.load(
 );
 
 // Points of Interest
+//* points array containing object for each point - { position, DOMelement }
+//* position - position in scene
+//* element - DOM element to select
 const points = [
     {
         position: new THREE.Vector3(1.55, 0.1, -0.6),
@@ -120,6 +124,7 @@ const points = [
         element: document.querySelector('.point-2')
     }
 ];
+//* create raycaster
 const raycaster = new THREE.Raycaster();
 
 // Lights
@@ -177,27 +182,46 @@ const tick = () => {
 
     // HTML Animation
     if (sceneReady) {
+        //* loop through points array
         for (const point of points) {
+            //* clone point position to avoid modifying original point
             const screenPosition = point.position.clone();
+            //* project this vector from scene space into camera's normalized device coordinate (NDC)
+            //* https://threejs.org/docs/#api/en/math/Vector3.project
+            //* projects html element to correct position using vec3 position property in points array
             screenPosition.project(camera);
 
+            //* https://threejs.org/docs/#api/en/core/Raycaster.setFromCamera
+            //* setFromCamera(vec2, camera) can take a vec3 but will only use first 2 coordinates
             raycaster.setFromCamera(screenPosition, camera);
+
+            //* currently testing on every object, not good for performance
+            //* raycaster.intersectObjects(array, children of children, recursively:bool)
             const intersects = raycaster.intersectObjects(scene.children, true);
 
+            //* if intersects array is empty, no object is in front of html element
             if (!intersects.length) {
                 point.element.classList.add('visible');
             } else {
+                //* grab intersect distance from camera
                 const intersectDistance = intersects[0].distance;
+                //* position:vec3.distanceTo(position:vec3) calculates distance from one vec3 to another vec3
+                //* grab point distance from camera
                 const pointDistance = point.position.distanceTo(camera.position);
 
+                //* if raycaster intersect distance is less than point distance
                 if (intersectDistance < pointDistance) {
+                    //* remove html element visibility
                     point.element.classList.remove('visible');
                 } else {
+                    //* otherwise, show html element
                     point.element.classList.add('visible');
                 };
             };
+            //* use normalized coordinates to track movement
             const translateX = screenPosition.x * sizes.width / 2;
             const translateY = - screenPosition.y * sizes.height / 2;
+            //* apply translate on movement x and y
             point.element.style.transform = `translate(${translateX}px, ${translateY}px)`;
         };
     };
